@@ -9,7 +9,7 @@ import os
 import random
 import sys
 import types
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from functools import partial
 from PIL import Image
 
@@ -21,7 +21,21 @@ import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.nn as nn
 from tqdm import tqdm
-from diffusers.models.modeling_utils import no_init_weights, ContextManagers
+from transformers.modeling_utils import no_init_weights
+
+class ContextManagers:
+    """Wrapper for using multiple context managers simultaneously (replaces diffusers import)."""
+    def __init__(self, context_managers):
+        self.context_managers = context_managers
+
+    def __enter__(self):
+        self.stack = ExitStack()
+        for cm in self.context_managers:
+            self.stack.enter_context(cm)
+        return self
+
+    def __exit__(self, *args):
+        self.stack.__exit__(*args)
 import accelerate
 
 from .distributed.fsdp import shard_model
